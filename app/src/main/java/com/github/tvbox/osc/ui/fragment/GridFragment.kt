@@ -31,7 +31,7 @@ import java.util.*
  * @description:
  */
 class GridFragment : BaseLazyFragment() {
-    private lateinit var sortData: SortData
+    private var sortData: SortData? = null
     private var mGridView: TvRecyclerView? = null
     private var sourceViewModel: SourceViewModel? = null
     private var gridFilterDialog: GridFilterDialog? = null
@@ -42,7 +42,7 @@ class GridFragment : BaseLazyFragment() {
     var isTop = true
         private set
     private var focusedView: View? = null
-    protected override val layoutResID: Int
+    override val layoutResID: Int
         get() = R.layout.fragment_grid
 
     inner class GridInfo {
@@ -69,7 +69,7 @@ class GridFragment : BaseLazyFragment() {
 
     private fun changeView(id: String) {
         initView()
-        sortData.id = id // 修改sortData.id为新的ID
+        sortData?.id = id // 修改sortData.id为新的ID
         initViewModel()
         initData()
     }
@@ -79,19 +79,19 @@ class GridFragment : BaseLazyFragment() {
     val uITag: Char
         // 获取当前页面UI的显示模式 ‘0’ 正常模式 '1' 文件夹模式 '2' 显示缩略图的文件夹模式
         get() {
-            return if (sortData.flag == null || sortData.flag?.length == 0) '0' else sortData.flag?.get(0)?:'0'
+            return if (sortData?.flag == null || sortData?.flag?.length == 0) '0' else sortData?.flag?.get(0)?:'0'
         }
 
     // 是否允许聚合搜索 sortData.flag的第二个字符为‘1’时允许聚搜
     fun enableFastSearch(): Boolean {
-        return if (sortData.flag == null || sortData.flag?.length.let { it!! < 2 }) false else sortData.flag?.get(1)?.equals('1')?:true
+        return if (sortData?.flag == null || sortData?.flag?.length.let { it!! < 2 }) false else sortData?.flag?.get(1)?.equals('1')?:true
     }
 
     // 保存当前页面
     private fun saveCurrentView() {
         if (mGridView == null) return
         val info = GridInfo()
-        info.sortID = sortData.id.toString()
+        info.sortID = sortData?.id.toString()
         info.mGridView = mGridView
         info.gridAdapter = gridAdapter
         info.page = page
@@ -105,9 +105,9 @@ class GridFragment : BaseLazyFragment() {
     fun restoreView(): Boolean {
         if (mGrids.empty()) return false
         showSuccess()
-        (mGridView!!.parent as ViewGroup).removeView(mGridView) // 重父窗口移除当前控件
+        mGridView?.parent?.let { (it as ViewGroup).removeView(mGridView)  } // 重父窗口移除当前控件
         val info = mGrids.pop() // 还原上次保存的控件
-        sortData.id = info.sortID
+        sortData?.id = info.sortID
         mGridView = info.mGridView
         gridAdapter = info.gridAdapter
         page = info.page
@@ -257,8 +257,8 @@ class GridFragment : BaseLazyFragment() {
     }
 
     private fun toggleFilterStatus() {
-        if (sortData.filters.isNotEmpty()) {
-            val count = sortData.filterSelectCount()
+        if (sortData?.filters?.isNotEmpty() == true) {
+            val count = sortData?.filterSelectCount()
             EventBus.getDefault().post(RefreshEvent(RefreshEvent.TYPE_FILTER_CHANGE, count))
         }
     }
@@ -269,7 +269,7 @@ class GridFragment : BaseLazyFragment() {
     }
 
     fun showFilter() {
-        if (sortData.filters.isNotEmpty() && gridFilterDialog == null) {
+        if (sortData?.filters?.isNotEmpty() == true && gridFilterDialog == null) {
             gridFilterDialog = mContext?.let { GridFilterDialog(it) }
             gridFilterDialog!!.setData(sortData)
             gridFilterDialog!!.setOnDismiss {
