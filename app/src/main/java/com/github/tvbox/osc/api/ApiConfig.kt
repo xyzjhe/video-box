@@ -671,7 +671,7 @@ class ApiConfig private constructor() {
     companion object {
         private var instance: ApiConfig? = null
         @JvmStatic
-        fun get(): ApiConfig? {
+        fun get(): ApiConfig {
             if (instance == null) {
                 synchronized(ApiConfig::class.java) {
                     if (instance == null) {
@@ -679,7 +679,7 @@ class ApiConfig private constructor() {
                     }
                 }
             }
-            return instance
+            return instance!!
         }
 
         fun FindResult(json: String, configKey: String?): String {

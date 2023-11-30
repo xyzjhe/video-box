@@ -72,7 +72,7 @@ class GridFragment : BaseLazyFragment() {
 
     private fun changeView(id: String) {
         initView()
-        sortData!!.id = id // 修改sortData.id为新的ID
+        sortData.id = id // 修改sortData.id为新的ID
         initViewModel()
         initData()
     }
@@ -82,22 +82,19 @@ class GridFragment : BaseLazyFragment() {
     val uITag: Char
         // 获取当前页面UI的显示模式 ‘0’ 正常模式 '1' 文件夹模式 '2' 显示缩略图的文件夹模式
         get() {
-            if (sortData == null) {
-                return '0'
-            }
-            return if (sortData!!.flag == null || sortData!!.flag.length == 0) '0' else sortData!!.flag[0]
+            return if (sortData.flag == null || sortData.flag?.length == 0) '0' else sortData.flag?.get(0)?:'0'
         }
 
     // 是否允许聚合搜索 sortData.flag的第二个字符为‘1’时允许聚搜
     fun enableFastSearch(): Boolean {
-        return if (sortData!!.flag == null || sortData!!.flag.length < 2) true else sortData!!.flag[1] == '1'
+        return if (sortData.flag == null || sortData.flag?.length.let { it!! < 2 }) false else sortData.flag?.get(1)?.equals('1')?:true
     }
 
     // 保存当前页面
     private fun saveCurrentView() {
         if (mGridView == null) return
         val info = GridInfo()
-        info.sortID = sortData!!.id
+        info.sortID = sortData.id.toString()
         info.mGridView = mGridView
         info.gridAdapter = gridAdapter
         info.page = page
@@ -113,7 +110,7 @@ class GridFragment : BaseLazyFragment() {
         showSuccess()
         (mGridView!!.parent as ViewGroup).removeView(mGridView) // 重父窗口移除当前控件
         val info = mGrids.pop() // 还原上次保存的控件
-        sortData!!.id = info.sortID
+        sortData.id = info.sortID
         mGridView = info.mGridView
         gridAdapter = info.gridAdapter
         page = info.page
@@ -172,34 +169,29 @@ class GridFragment : BaseLazyFragment() {
 
             override fun onItemClick(parent: TvRecyclerView, itemView: View, position: Int) {}
         })
-        mGridView!!.setOnInBorderKeyEventListener { direction, focused ->
-            if (direction == View.FOCUS_UP) {
-            }
+        mGridView!!.setOnInBorderKeyEventListener { direction, _ ->
             false
         }
-        gridAdapter!!.setOnItemClickListener(object : BaseQuickAdapter.OnItemClickListener {
-            override fun onItemClick(adapter: BaseQuickAdapter<*, *>?, view: View, position: Int) {
-                FastClickCheckUtil.check(view)
-                val video = gridAdapter!!.data[position]
-                if (video != null) {
-                    val bundle = Bundle()
-                    bundle.putString("id", video.id)
-                    bundle.putString("sourceKey", video.sourceKey)
-                    bundle.putString("title", video.name)
-                    val homeSourceBean = ApiConfig.get().homeSourceBean
-                    if ("12".indexOf(uITag) != -1 && video.tag == "folder") {
-                        focusedView = view
-                        changeView(video.id)
+        gridAdapter!!.setOnItemClickListener { _, view, position ->
+            FastClickCheckUtil.check(view)
+            val video = gridAdapter!!.data[position]
+            if (video != null) {
+                val bundle = Bundle()
+                bundle.putString("id", video.id)
+                bundle.putString("sourceKey", video.sourceKey)
+                bundle.putString("title", video.name)
+                if ("12".indexOf(uITag) != -1 && video.tag == "folder") {
+                    focusedView = view
+                    changeView(video.id)
+                } else {
+                    if (video.id == null || video.id.isEmpty() || video.id.startsWith("msearch:")) {
+                        jumpActivity(FastSearchActivity::class.java, bundle)
                     } else {
-                        if (video.id == null || video.id.isEmpty() || video.id.startsWith("msearch:")) {
-                            jumpActivity(FastSearchActivity::class.java, bundle)
-                        } else {
-                            jumpActivity(DetailActivity::class.java, bundle)
-                        }
+                        jumpActivity(DetailActivity::class.java, bundle)
                     }
                 }
             }
-        })
+        }
         // takagen99 : Long Press to Fast Search
         gridAdapter!!.onItemLongClickListener = BaseQuickAdapter.OnItemLongClickListener { adapter, view, position ->
             FastClickCheckUtil.check(view)
@@ -223,7 +215,7 @@ class GridFragment : BaseLazyFragment() {
         }
         sourceViewModel = ViewModelProvider(this).get(SourceViewModel::class.java)
         sourceViewModel!!.listResult.observe(this) { absXml -> //                if(mGridView != null) mGridView.requestFocus();
-            if (absXml != null && absXml.movie != null && absXml.movie.videoList != null && absXml.movie.videoList.size > 0) {
+            if (absXml?.movie != null && absXml.movie.videoList != null && absXml.movie.videoList.size > 0) {
                 if (page == 1) {
                     showSuccess()
                     isLoad = true
@@ -268,8 +260,8 @@ class GridFragment : BaseLazyFragment() {
     }
 
     private fun toggleFilterStatus() {
-        if (sortData!!.filters != null && !sortData!!.filters.isEmpty()) {
-            val count = sortData!!.filterSelectCount()
+        if (sortData.filters.isNotEmpty()) {
+            val count = sortData.filterSelectCount()
             EventBus.getDefault().post(RefreshEvent(RefreshEvent.TYPE_FILTER_CHANGE, count))
         }
     }
@@ -280,7 +272,7 @@ class GridFragment : BaseLazyFragment() {
     }
 
     fun showFilter() {
-        if (!sortData!!.filters.isEmpty() && gridFilterDialog == null) {
+        if (sortData.filters.isNotEmpty() && gridFilterDialog == null) {
             gridFilterDialog = GridFilterDialog(mContext)
             gridFilterDialog!!.setData(sortData)
             gridFilterDialog!!.setOnDismiss {
