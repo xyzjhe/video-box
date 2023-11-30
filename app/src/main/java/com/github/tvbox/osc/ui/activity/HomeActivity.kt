@@ -33,6 +33,7 @@ import com.github.tvbox.osc.api.ApiConfig.LoadConfigCallback
 import com.github.tvbox.osc.base.BaseActivity
 import com.github.tvbox.osc.base.BaseLazyFragment
 import com.github.tvbox.osc.bean.AbsSortXml
+import com.github.tvbox.osc.bean.MovieSort
 import com.github.tvbox.osc.bean.SourceBean
 import com.github.tvbox.osc.event.RefreshEvent
 import com.github.tvbox.osc.server.ControlManager
@@ -251,9 +252,9 @@ class HomeActivity : BaseActivity() {
         sourceViewModel!!.sortResult.observe(this) { absXml ->
             showSuccess()
             if (absXml?.classes != null && absXml.classes.sortList != null) {
-                sortAdapter!!.setNewData(DefaultConfig.adjustSort(ApiConfig.get().homeSourceBean.key, absXml.classes.sortList, true))
+                sortAdapter?.setNewData(DefaultConfig.adjustSort(ApiConfig.get()?.homeSourceBean?.key, absXml.classes?.sortList?: listOf(), true))
             } else {
-                sortAdapter!!.setNewData(DefaultConfig.adjustSort(ApiConfig.get().homeSourceBean.key, ArrayList(), true))
+                sortAdapter?.setNewData(DefaultConfig.adjustSort(ApiConfig.get()?.homeSourceBean?.key, ArrayList(), true))
             }
             initViewPager(absXml)
         }
@@ -275,7 +276,7 @@ class HomeActivity : BaseActivity() {
     private fun initData() {
 
         // takagen99 : Switch to show / hide source title
-        val home = ApiConfig.get().homeSourceBean
+        val home = ApiConfig.get()?.homeSourceBean
         if (homeShow) {
             if (home != null && home.name != null && home.name.isNotEmpty()) tvName!!.text = home.name
         }
@@ -305,7 +306,8 @@ class HomeActivity : BaseActivity() {
         mGridView!!.requestFocus()
         if (dataInitOk && jarInitOk) {
             showLoading()
-            sourceViewModel!!.getSort(ApiConfig.get().homeSourceBean.key)
+            val key = ApiConfig.get()?.homeSourceBean?.key
+            sourceViewModel?.getSort(key)
             if (hasPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
                 LOG.e("有")
             } else {
@@ -315,34 +317,36 @@ class HomeActivity : BaseActivity() {
         }
         showLoading()
         if (dataInitOk && !jarInitOk) {
-            if (ApiConfig.get().spider.isNotEmpty()) {
-                ApiConfig.get().loadJar(useCacheConfig, ApiConfig.get().spider, object : LoadConfigCallback {
-                    override fun success() {
-                        jarInitOk = true
-                        mHandler.postDelayed({
-                            if (!useCacheConfig) {
-                                if (Hawk.get(HawkConfig.HOME_DEFAULT_SHOW, false)) {
-                                    jumpActivity(LivePlayActivity::class.java)
+            if (ApiConfig.get()?.spider?.isNotEmpty() == true) {
+                ApiConfig.get()?.spider?.let {
+                    ApiConfig.get()?.loadJar(useCacheConfig, it, object : LoadConfigCallback {
+                        override fun success() {
+                            jarInitOk = true
+                            mHandler.postDelayed({
+                                if (!useCacheConfig) {
+                                    if (Hawk.get(HawkConfig.HOME_DEFAULT_SHOW, false)) {
+                                        jumpActivity(LivePlayActivity::class.java)
+                                    }
+                                    Toast.makeText(this@HomeActivity, getString(R.string.hm_ok), Toast.LENGTH_SHORT).show()
                                 }
-                                Toast.makeText(this@HomeActivity, getString(R.string.hm_ok), Toast.LENGTH_SHORT).show()
-                            }
-                            initData()
-                        }, 50)
-                    }
-
-                    override fun retry() {}
-                    override fun error(msg: String) {
-                        jarInitOk = true
-                        mHandler.post {
-                            if ("" == msg) Toast.makeText(this@HomeActivity, getString(R.string.hm_notok), Toast.LENGTH_SHORT).show() else Toast.makeText(this@HomeActivity, msg, Toast.LENGTH_SHORT).show()
-                            initData()
+                                initData()
+                            }, 50)
                         }
-                    }
-                })
+
+                        override fun retry() {}
+                        override fun error(msg: String) {
+                            jarInitOk = true
+                            mHandler.post {
+                                if ("" == msg) Toast.makeText(this@HomeActivity, getString(R.string.hm_notok), Toast.LENGTH_SHORT).show() else Toast.makeText(this@HomeActivity, msg, Toast.LENGTH_SHORT).show()
+                                initData()
+                            }
+                        }
+                    })
+                }
             }
             return
         }
-        ApiConfig.get().loadConfig(useCacheConfig, object : LoadConfigCallback {
+        ApiConfig.get()?.loadConfig(useCacheConfig, object : LoadConfigCallback {
             var dialog: TipDialog? = null
             override fun retry() {
                 mHandler.post { initData() }
@@ -350,7 +354,7 @@ class HomeActivity : BaseActivity() {
 
             override fun success() {
                 dataInitOk = true
-                if (ApiConfig.get().spider.isEmpty()) {
+                if (ApiConfig.get()?.spider?.isEmpty() == true) {
                     jarInitOk = true
                 }
                 mHandler.postDelayed({ initData() }, 50)
@@ -480,7 +484,7 @@ class HomeActivity : BaseActivity() {
         super.onResume()
 
         // takagen99 : Switch to show / hide source title
-        val home = ApiConfig.get().homeSourceBean
+        val home = ApiConfig.get()?.homeSourceBean
         if (Hawk.get(HawkConfig.HOME_SHOW_SOURCE, false)) {
             if (home != null && home.name != null && home.name.isNotEmpty()) {
                 tvName!!.text = home.name
@@ -511,7 +515,7 @@ class HomeActivity : BaseActivity() {
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun refresh(event: RefreshEvent) {
         if (event.type == RefreshEvent.TYPE_PUSH_URL) {
-            if (ApiConfig.get().getSource("push_agent") != null) {
+            if (ApiConfig.get()?.getSource("push_agent") != null) {
                 val newIntent = Intent(mContext, DetailActivity::class.java)
                 newIntent.putExtra("id", event.obj as String)
                 newIntent.putExtra("sourceKey", "push_agent")
@@ -615,7 +619,7 @@ class HomeActivity : BaseActivity() {
     // Site Switch on Home Button
     fun showSiteSwitch() {
         val sites: MutableList<SourceBean> = ArrayList()
-        for (sb in ApiConfig.get().sourceBeanList) {
+        for (sb in ApiConfig.get()?.getSourceBeanList()?: listOf()) {
             if (sb.hide == 0) sites.add(sb)
         }
         if (sites.size > 0) {
@@ -635,7 +639,7 @@ class HomeActivity : BaseActivity() {
             dialog.setTip(getString(R.string.dia_source))
             dialog.setAdapter(object : SelectDialogAdapter.SelectDialogInterface<SourceBean?> {
                 override fun click(value: SourceBean?, pos: Int) {
-                    ApiConfig.get().setSourceBean(value)
+                    ApiConfig.get()?.setSourceBean(value)
                     reloadHome()
                 }
 
@@ -650,7 +654,7 @@ class HomeActivity : BaseActivity() {
                 override fun areContentsTheSame(oldItem: SourceBean, newItem: SourceBean): Boolean {
                     return oldItem.key == newItem.key
                 }
-            }, sites, sites.indexOf(ApiConfig.get().homeSourceBean))
+            }, sites, sites.indexOf(ApiConfig.get()?.homeSourceBean))
             dialog.setOnDismissListener {
                 //                    if (homeSourceKey != null && !homeSourceKey.equals(Hawk.get(HawkConfig.HOME_API, ""))) {
 //                        Intent intent = new Intent(getApplicationContext(), HomeActivity.class);

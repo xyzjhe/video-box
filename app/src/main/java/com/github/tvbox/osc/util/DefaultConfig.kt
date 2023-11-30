@@ -22,19 +22,21 @@ object DefaultConfig {
     fun adjustSort(sourceKey: String?, list: List<SortData>, withMy: Boolean): List<SortData> {
         val data: MutableList<SortData> = ArrayList()
         if (sourceKey != null) {
-            val sb = ApiConfig.get().getSource(sourceKey)
-            val categories = sb.categories
-            if (categories.isNotEmpty()) {
-                for (cate in categories) {
-                    for (sortData in list) {
-                        if (sortData.name == cate) {
-                            data.add(sortData)
+            val sb = ApiConfig.get()?.getSource(sourceKey)
+            val categories = sb?.categories
+            if (categories != null) {
+                if (categories.isNotEmpty()) {
+                    for (cate in categories) {
+                        for (sortData in list) {
+                            if (sortData.name == cate) {
+                                data.add(sortData)
+                            }
                         }
                     }
-                }
-            } else {
-                for (sortData in list) {
-                    data.add(sortData)
+                } else {
+                    for (sortData in list) {
+                        data.add(sortData)
+                    }
                 }
             }
         }

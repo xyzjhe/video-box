@@ -36,7 +36,7 @@ import java.util.regex.Pattern
  * @description:
  */
 class ApiConfig private constructor() {
-    private val sourceBeanList: LinkedHashMap<String, SourceBean>?
+    private val sourceBeanMap: LinkedHashMap<String, SourceBean>?
     private var mHomeSource: SourceBean? = null
     var defaultParse: ParseBean? = null
         private set
@@ -56,10 +56,11 @@ class ApiConfig private constructor() {
     private val requestAccept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
 
     init {
-        sourceBeanList = LinkedHashMap()
+        sourceBeanMap = LinkedHashMap()
         liveChannelGroupList = ArrayList()
         parseBeanList = ArrayList()
     }
+
 
     fun loadConfig(useCache: Boolean, callback: LoadConfigCallback, activity: Activity?) {
         // Embedded Source : Update in Strings.xml if required
@@ -268,9 +269,9 @@ class ApiConfig private constructor() {
             sb.categories = safeJsonStringList(obj, "categories")
             sb.clickSelector = safeJsonString(obj, "click", "")
             if (firstSite == null && sb.hide == 0) firstSite = sb
-            sourceBeanList!![siteKey] = sb
+            sourceBeanMap!![siteKey] = sb
         }
-        if (sourceBeanList != null && sourceBeanList.size > 0) {
+        if (sourceBeanMap != null && sourceBeanMap.size > 0) {
             val home = Hawk.get(HawkConfig.HOME_API, "")
             val sh = getSource(home)
             if (sh == null || sh.hide == 1) setSourceBean(firstSite) else setSourceBean(sh)
@@ -579,7 +580,7 @@ class ApiConfig private constructor() {
     interface LoadConfigCallback {
         fun success()
         fun retry()
-        fun error(msg: String?)
+        fun error(msg: String)
     }
 
     interface FastParseCallback {
@@ -588,7 +589,7 @@ class ApiConfig private constructor() {
     }
 
     fun getSource(key: String): SourceBean? {
-        return if (!sourceBeanList!!.containsKey(key)) null else sourceBeanList[key]
+        return if (!sourceBeanMap!!.containsKey(key)) null else sourceBeanMap[key]
     }
 
     fun setSourceBean(sourceBean: SourceBean?) {
@@ -604,7 +605,7 @@ class ApiConfig private constructor() {
     }
 
     fun getSourceBeanList(): List<SourceBean> {
-        return ArrayList(sourceBeanList!!.values)
+        return ArrayList(sourceBeanMap!!.values)
     }
 
     fun getParseBeanList(): List<ParseBean>? {
