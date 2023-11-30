@@ -8,7 +8,6 @@ import android.widget.Toast
 import androidx.lifecycle.ViewModelProvider
 import com.chad.library.adapter.base.BaseQuickAdapter
 import com.github.tvbox.osc.R
-import com.github.tvbox.osc.api.ApiConfig
 import com.github.tvbox.osc.base.BaseLazyFragment
 import com.github.tvbox.osc.bean.MovieSort.SortData
 import com.github.tvbox.osc.event.RefreshEvent
@@ -43,6 +42,8 @@ class GridFragment : BaseLazyFragment() {
     var isTop = true
         private set
     private var focusedView: View? = null
+    protected override val layoutResID: Int
+        get() = R.layout.fragment_grid
 
     inner class GridInfo {
         var sortID = ""
@@ -58,10 +59,6 @@ class GridFragment : BaseLazyFragment() {
     fun setArguments(sortData: SortData): GridFragment {
         this.sortData = sortData
         return this
-    }
-
-    override fun getLayoutResID(): Int {
-        return R.layout.fragment_grid
     }
 
     override fun init() {
@@ -273,7 +270,7 @@ class GridFragment : BaseLazyFragment() {
 
     fun showFilter() {
         if (sortData.filters.isNotEmpty() && gridFilterDialog == null) {
-            gridFilterDialog = GridFilterDialog(mContext)
+            gridFilterDialog = mContext?.let { GridFilterDialog(it) }
             gridFilterDialog!!.setData(sortData)
             gridFilterDialog!!.setOnDismiss {
                 page = 1

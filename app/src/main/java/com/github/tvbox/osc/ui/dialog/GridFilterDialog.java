@@ -25,7 +25,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 
 public class GridFilterDialog extends BaseDialog {
-    private LinearLayout filterRoot;
+    private final LinearLayout filterRoot;
 
     public GridFilterDialog(@NonNull @NotNull Context context) {
         super(context);

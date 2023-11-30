@@ -33,7 +33,6 @@ import com.github.tvbox.osc.api.ApiConfig.LoadConfigCallback
 import com.github.tvbox.osc.base.BaseActivity
 import com.github.tvbox.osc.base.BaseLazyFragment
 import com.github.tvbox.osc.bean.AbsSortXml
-import com.github.tvbox.osc.bean.MovieSort
 import com.github.tvbox.osc.bean.SourceBean
 import com.github.tvbox.osc.event.RefreshEvent
 import com.github.tvbox.osc.server.ControlManager
@@ -276,9 +275,9 @@ class HomeActivity : BaseActivity() {
     private fun initData() {
 
         // takagen99 : Switch to show / hide source title
-        val home = ApiConfig.get()?.homeSourceBean
+        val home = ApiConfig.get().homeSourceBean
         if (homeShow) {
-            if (home != null && home.name != null && home.name.isNotEmpty()) tvName!!.text = home.name
+            if (home.name != null && home.name.isNotEmpty()) tvName!!.text = home.name
         }
 
         // takagen99: If network available, check connected Wifi or Lan
@@ -619,7 +618,7 @@ class HomeActivity : BaseActivity() {
     // Site Switch on Home Button
     fun showSiteSwitch() {
         val sites: MutableList<SourceBean> = ArrayList()
-        for (sb in ApiConfig.get()?.getSourceBeanList()?: listOf()) {
+        for (sb in ApiConfig.get().getSourceBeanList() ?: listOf()) {
             if (sb.hide == 0) sites.add(sb)
         }
         if (sites.size > 0) {
@@ -654,7 +653,7 @@ class HomeActivity : BaseActivity() {
                 override fun areContentsTheSame(oldItem: SourceBean, newItem: SourceBean): Boolean {
                     return oldItem.key == newItem.key
                 }
-            }, sites, sites.indexOf(ApiConfig.get()?.homeSourceBean))
+            }, sites, sites.indexOf(ApiConfig.get().homeSourceBean))
             dialog.setOnDismissListener {
                 //                    if (homeSourceKey != null && !homeSourceKey.equals(Hawk.get(HawkConfig.HOME_API, ""))) {
 //                        Intent intent = new Intent(getApplicationContext(), HomeActivity.class);
