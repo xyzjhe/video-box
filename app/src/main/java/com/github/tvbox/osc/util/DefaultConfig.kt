@@ -1,83 +1,70 @@
-package com.github.tvbox.osc.util;
+package com.github.tvbox.osc.util
 
-import android.content.Context;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-import android.text.TextUtils;
-
-import com.github.tvbox.osc.R;
-import com.github.tvbox.osc.api.ApiConfig;
-import com.github.tvbox.osc.bean.MovieSort;
-import com.github.tvbox.osc.bean.SourceBean;
-import com.github.tvbox.osc.server.ControlManager;
-import com.github.tvbox.osc.ui.activity.HomeActivity;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.hjq.permissions.Permission;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.regex.Pattern;
+import android.content.Context
+import android.content.pm.PackageManager
+import android.text.TextUtils
+import com.github.tvbox.osc.R
+import com.github.tvbox.osc.api.ApiConfig
+import com.github.tvbox.osc.bean.MovieSort.SortData
+import com.github.tvbox.osc.server.ControlManager
+import com.github.tvbox.osc.ui.activity.HomeActivity.Companion.res
+import com.google.gson.JsonObject
+import com.hjq.permissions.Permission
+import java.util.*
+import java.util.regex.Pattern
 
 /**
  * @author pj567
  * @date :2020/12/21
  * @description:
  */
-public class DefaultConfig {
-
-    public static List<MovieSort.SortData> adjustSort(String sourceKey, List<MovieSort.SortData> list, boolean withMy) {
-        List<MovieSort.SortData> data = new ArrayList<>();
+object DefaultConfig {
+    fun adjustSort(sourceKey: String?, list: List<SortData>, withMy: Boolean): List<SortData> {
+        val data: MutableList<SortData> = ArrayList()
         if (sourceKey != null) {
-            SourceBean sb = ApiConfig.get().getSource(sourceKey);
-            ArrayList<String> categories = sb.getCategories();
-            if (!categories.isEmpty()) {
-                for (String cate : categories) {
-                    for (MovieSort.SortData sortData : list) {
-                        if (sortData.name.equals(cate)) {
-                            if (sortData.filters == null)
-                                sortData.filters = new ArrayList<>();
-                            data.add(sortData);
+            val sb = ApiConfig.get().getSource(sourceKey)
+            val categories = sb.categories
+            if (categories.isNotEmpty()) {
+                for (cate in categories) {
+                    for (sortData in list) {
+                        if (sortData.name == cate) {
+                            data.add(sortData)
                         }
                     }
                 }
             } else {
-                for (MovieSort.SortData sortData : list) {
-                    if (sortData.filters == null)
-                        sortData.filters = new ArrayList<>();
-                    data.add(sortData);
+                for (sortData in list) {
+                    data.add(sortData)
                 }
             }
         }
-        if (withMy)
-            data.add(0, new MovieSort.SortData("my0", HomeActivity.getRes().getString(R.string.app_home)));
-        Collections.sort(data);
-        return data;
+        if (withMy) data.add(0, SortData("my0", res!!.getString(R.string.app_home)))
+        data.sort()
+        return data
     }
 
-    public static int getAppVersionCode(Context mContext) {
+    fun getAppVersionCode(mContext: Context): Int {
         //包管理操作管理类
-        PackageManager pm = mContext.getPackageManager();
+        val pm = mContext.packageManager
         try {
-            PackageInfo packageInfo = pm.getPackageInfo(mContext.getPackageName(), 0);
-            return packageInfo.versionCode;
-        } catch (PackageManager.NameNotFoundException e) {
-            e.printStackTrace();
+            val packageInfo = pm.getPackageInfo(mContext.packageName, 0)
+            return packageInfo.versionCode
+        } catch (e: PackageManager.NameNotFoundException) {
+            e.printStackTrace()
         }
-        return -1;
+        return -1
     }
 
-    public static String getAppVersionName(Context mContext) {
+    fun getAppVersionName(mContext: Context): String {
         //包管理操作管理类
-        PackageManager pm = mContext.getPackageManager();
+        val pm = mContext.packageManager
         try {
-            PackageInfo packageInfo = pm.getPackageInfo(mContext.getPackageName(), 0);
-            return packageInfo.versionName;
-        } catch (PackageManager.NameNotFoundException e) {
-            e.printStackTrace();
+            val packageInfo = pm.getPackageInfo(mContext.packageName, 0)
+            return packageInfo.versionName
+        } catch (e: PackageManager.NameNotFoundException) {
+            e.printStackTrace()
         }
-        return "";
+        return ""
     }
 
     /**
@@ -86,12 +73,12 @@ public class DefaultConfig {
      * @param name
      * @return
      */
-    public static String getFileSuffix(String name) {
+    fun getFileSuffix(name: String): String {
         if (TextUtils.isEmpty(name)) {
-            return "";
+            return ""
         }
-        int endP = name.lastIndexOf(".");
-        return endP > -1 ? name.substring(endP) : "";
+        val endP = name.lastIndexOf(".")
+        return if (endP > -1) name.substring(endP) else ""
     }
 
     /**
@@ -100,16 +87,16 @@ public class DefaultConfig {
      * @param fileName
      * @return
      */
-    public static String getFilePrefixName(String fileName) {
+    fun getFilePrefixName(fileName: String): String {
         if (TextUtils.isEmpty(fileName)) {
-            return "";
+            return ""
         }
-        int start = fileName.lastIndexOf(".");
-        return start > -1 ? fileName.substring(0, start) : fileName;
+        val start = fileName.lastIndexOf(".")
+        return if (start > -1) fileName.substring(0, start) else fileName
     }
 
     // takagen99 : 增加对flv|avi|mkv|rm|wmv|mpg等几种视频格式的支持
-    private static final Pattern snifferMatch = Pattern.compile(
+    private val snifferMatch = Pattern.compile(
             "http((?!http).){20,}?\\.(m3u8|mp4|flv|avi|mkv|rm|wmv|mpg)\\?.*|" +
                     "http((?!http).){20,}\\.(m3u8|mp4|flv|avi|mkv|rm|wmv|mpg)|" +
                     "http((?!http).)*?video/tos*|" +
@@ -124,67 +111,66 @@ public class DefaultConfig {
                     "http.*?/api/up_api.php\\?.*|" +
                     "https.*?\\.66yk\\.cn.*|" +
                     "http((?!http).)*?netease\\.com/file/.*"
-    );
-    public static boolean isVideoFormat(String url) {
+    )
+
+    @JvmStatic
+    fun isVideoFormat(url: String): Boolean {
         if (url.contains("=http")) {
-            return false;
+            return false
         }
-        if (snifferMatch.matcher(url).find()) {
-            return !url.contains(".js") && !url.contains(".css") && !url.contains(".jpg") && !url.contains(".png") && !url.contains(".gif") && !url.contains(".ico") && !url.contains("rl=") && !url.contains(".html");
-        }
-        return false;
+        return if (snifferMatch.matcher(url).find()) {
+            !url.contains(".js") && !url.contains(".css") && !url.contains(".jpg") && !url.contains(".png") && !url.contains(".gif") && !url.contains(".ico") && !url.contains("rl=") && !url.contains(".html")
+        } else false
     }
 
-
-    public static String safeJsonString(JsonObject obj, String key, String defaultVal) {
+    @JvmStatic
+    fun safeJsonString(obj: JsonObject, key: String?, defaultVal: String): String {
         try {
-            if (obj.has(key))
-                return obj.getAsJsonPrimitive(key).getAsString().trim();
-            else
-                return defaultVal;
-        } catch (Throwable th) {
+            return if (obj.has(key)) obj.getAsJsonPrimitive(key).getAsString().trim { it <= ' ' } else defaultVal
+        } catch (th: Throwable) {
+            LOG.e(th)
         }
-        return defaultVal;
+        return defaultVal
     }
 
-    public static int safeJsonInt(JsonObject obj, String key, int defaultVal) {
+    @JvmStatic
+    fun safeJsonInt(obj: JsonObject, key: String?, defaultVal: Int): Int {
         try {
-            if (obj.has(key))
-                return obj.getAsJsonPrimitive(key).getAsInt();
-            else
-                return defaultVal;
-        } catch (Throwable th) {
+            return if (obj.has(key)) obj.getAsJsonPrimitive(key).asInt else defaultVal
+        } catch (th: Throwable) {
+            LOG.e(th)
         }
-        return defaultVal;
+        return defaultVal
     }
 
-    public static ArrayList<String> safeJsonStringList(JsonObject obj, String key) {
-        ArrayList<String> result = new ArrayList<>();
+    @JvmStatic
+    fun safeJsonStringList(obj: JsonObject, key: String?): ArrayList<String> {
+        val result = ArrayList<String>()
         try {
             if (obj.has(key)) {
-                if (obj.get(key).isJsonObject()) {
-                    result.add(obj.get(key).getAsString());
+                if (obj[key].isJsonObject) {
+                    result.add(obj[key].asString)
                 } else {
-                    for (JsonElement opt : obj.getAsJsonArray(key)) {
-                        result.add(opt.getAsString());
+                    for (opt in obj.getAsJsonArray(key)) {
+                        result.add(opt.asString)
                     }
                 }
             }
-        } catch (Throwable th) {
+        } catch (th: Throwable) {
+            LOG.e(th)
         }
-        return result;
+        return result
     }
 
-    public static String checkReplaceProxy(String urlOri) {
-        if (urlOri.startsWith("proxy://"))
-            return urlOri.replace("proxy://", ControlManager.get().getAddress(true) + "proxy?");
-        return urlOri;
+    @JvmStatic
+    fun checkReplaceProxy(urlOri: String): String {
+        return if (urlOri.startsWith("proxy://")) urlOri.replace("proxy://", ControlManager.get().getAddress(true) + "proxy?") else urlOri
     }
 
-    public static String[] StoragePermissionGroup() {
-        return new String[] {
+    @JvmStatic
+    fun StoragePermissionGroup(): Array<String> {
+        return arrayOf(
                 Permission.MANAGE_EXTERNAL_STORAGE
-        };
+        )
     }
-
 }
