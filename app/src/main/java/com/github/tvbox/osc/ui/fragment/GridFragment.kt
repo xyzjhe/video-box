@@ -32,7 +32,7 @@ import java.util.*
  * @description:
  */
 class GridFragment : BaseLazyFragment() {
-    private var sortData: SortData? = null
+    private lateinit var sortData: SortData
     private var mGridView: TvRecyclerView? = null
     private var sourceViewModel: SourceViewModel? = null
     private var gridFilterDialog: GridFilterDialog? = null
@@ -55,7 +55,7 @@ class GridFragment : BaseLazyFragment() {
     }
 
     var mGrids = Stack<GridInfo>() //ui栈
-    fun setArguments(sortData: SortData?): GridFragment {
+    fun setArguments(sortData: SortData): GridFragment {
         this.sortData = sortData
         return this
     }
@@ -298,7 +298,7 @@ class GridFragment : BaseLazyFragment() {
 
     companion object {
         @JvmStatic
-        fun newInstance(sortData: SortData?): GridFragment {
+        fun newInstance(sortData: SortData): GridFragment {
             return GridFragment().setArguments(sortData)
         }
     }

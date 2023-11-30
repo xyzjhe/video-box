@@ -399,7 +399,7 @@ class HomeActivity : BaseActivity() {
     }
 
     private fun initViewPager(absXml: AbsSortXml?) {
-        if (sortAdapter!!.data.size > 0) {
+        if (sortAdapter?.data?.size?.let { it > 0 } == true) {
             for (data in sortAdapter!!.data) {
                 if (data.id == "my0") {
                     if (Hawk.get(HawkConfig.HOME_REC, 0) == 1 && absXml != null && absXml.videoList != null && absXml.videoList.size > 0) {
