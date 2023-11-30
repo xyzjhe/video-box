@@ -73,6 +73,9 @@ sentry {
     authToken = System.getenv("SENTRY_AUTH_TOKEN")
 
 
+    uploadNativeSymbols = true
+
+
     // Whether the plugin should attempt to auto-upload the native debug symbols to Sentry or not.
     // If disabled the plugin will run a dry-run.
     // Default is enabled.
