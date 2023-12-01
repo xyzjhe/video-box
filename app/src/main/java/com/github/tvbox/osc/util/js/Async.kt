@@ -1,48 +1,38 @@
-package com.github.tvbox.osc.util.js;
+package com.github.tvbox.osc.util.js
 
-import com.whl.quickjs.wrapper.JSCallFunction;
-import com.whl.quickjs.wrapper.JSFunction;
-import com.whl.quickjs.wrapper.JSObject;
+import com.whl.quickjs.wrapper.JSCallFunction
+import com.whl.quickjs.wrapper.JSObject
+import java9.util.concurrent.CompletableFuture
 
-import java9.util.concurrent.CompletableFuture;
-
-public class Async {
-
-    private final CompletableFuture<Object> future;
-
-    public static CompletableFuture<Object> run(JSObject object, String name, Object[] args) {
-        return new Async().call(object, name, args);
+class Async private constructor() {
+    private val future: CompletableFuture<Any?> = CompletableFuture()
+    private fun call(`object`: JSObject, name: String, args: Array<out Any>): CompletableFuture<Any?> {
+        val function = `object`.getJSFunction(name) ?: return empty()
+        val result = function.call(*args)
+        (result as? JSObject)?.let { then(it) } ?: future.complete(result)
+        return future
     }
 
-    private Async() {
-        this.future = new CompletableFuture<>();
+    private fun empty(): CompletableFuture<Any?> {
+        future.complete(null)
+        return future
     }
 
-    private CompletableFuture<Object> call(JSObject object, String name, Object[] args) {
-        JSFunction function = object.getJSFunction(name);
-        if (function == null) return empty();
-        Object result = function.call(args);
-        if (result instanceof JSObject) then(result);
-        else future.complete(result);
-        return future;
+    private fun then(result: Any) {
+        val promise = result as JSObject
+        val then = promise.getJSFunction("then")
+        then?.call(callback)
     }
 
-    private CompletableFuture<Object> empty() {
-        future.complete(null);
-        return future;
+    private val callback = JSCallFunction { args ->
+        future.complete(args[0])
+        null
     }
 
-    private void then(Object result) {
-        JSObject promise = (JSObject) result;
-        JSFunction then = promise.getJSFunction("then");
-        if (then != null) then.call(callback);
-    }
-
-    private final JSCallFunction callback = new JSCallFunction() {
-        @Override
-        public Object call(Object... args) {
-            future.complete(args[0]);
-            return null;
+    companion object {
+        @JvmStatic
+        fun run(`object`: JSObject, name: String, args: Array<out Any>): CompletableFuture<Any?> {
+            return Async().call(`object`, name, args)
         }
-    };
+    }
 }

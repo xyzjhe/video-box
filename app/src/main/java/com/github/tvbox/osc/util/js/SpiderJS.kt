@@ -1,240 +1,228 @@
-package com.github.tvbox.osc.util.js;
+package com.github.tvbox.osc.util.js
 
-import android.content.Context;
-import androidx.media3.common.util.UriUtil;
-import com.github.catvod.crawler.Spider;
-import com.github.tvbox.osc.util.FileUtils;
-import com.github.tvbox.osc.util.LOG;
-import com.github.tvbox.osc.util.MD5;
-import com.github.tvbox.osc.util.js.FunCall;
-import com.whl.quickjs.android.QuickJSLoader;
-import com.whl.quickjs.wrapper.Function;
-import com.whl.quickjs.wrapper.JSArray;
-import com.whl.quickjs.wrapper.JSCallFunction;
-import com.whl.quickjs.wrapper.JSFunction;
-import com.whl.quickjs.wrapper.JSObject;
-import com.whl.quickjs.wrapper.JSUtils;
-import com.whl.quickjs.wrapper.QuickJSContext;
+import android.content.Context
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.common.util.UriUtil
+import com.github.catvod.crawler.Spider
+import com.github.tvbox.osc.util.FileUtils
+import com.github.tvbox.osc.util.LOG
+import com.github.tvbox.osc.util.MD5
+import com.whl.quickjs.wrapper.*
+import com.whl.quickjs.wrapper.Function
+import com.whl.quickjs.wrapper.QuickJSContext.DefaultModuleLoader
+import org.json.JSONArray
+import java.io.ByteArrayInputStream
+import java.util.concurrent.Callable
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import kotlin.Any
+import kotlin.Array
+import kotlin.Boolean
+import kotlin.ByteArray
+import kotlin.Exception
+import kotlin.NullPointerException
+import kotlin.String
+import kotlin.Throwable
+import kotlin.Throws
+import kotlin.arrayOf
+import kotlin.arrayOfNulls
 
-import org.json.JSONArray;
-import java.io.ByteArrayInputStream;
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+class SpiderJS(key: String?, private val js: String, cls: Class<*>?) : Spider() {
+    private val key: String
+    private var jsObject: JSObject? = null
+    var runtime: QuickJSContext? = null
+    var executor: ExecutorService
 
-public class SpiderJS extends Spider {
-
-    private final String key;
-    private final String js;
-    private JSObject jsObject;
-
-    public QuickJSContext runtime;
-    public ExecutorService executor;
-
-    public SpiderJS(String key, String js, Class<?> cls) throws Exception {
-        this.js = js;
-        this.executor = Executors.newSingleThreadExecutor();
-        this.key = "J" + MD5.encode(key);
-        initjs(cls);
-    }
-    
-    public void destroy() {
-        submit(() -> {
-            executor.shutdownNow();
-            runtime.destroy();
-        });
-    }
-    
-    private void submit(Runnable runnable) {
-        executor.submit(runnable);
+    init {
+        executor = Executors.newSingleThreadExecutor()
+        this.key = "J" + MD5.encode(key)
+        initjs(cls)
     }
 
-    private <T> Future<T> submit(Callable<T> callable) {
-        return executor.submit(callable);
+    override fun destroy() {
+        submit {
+            executor.shutdownNow()
+            runtime!!.destroy()
+        }
     }
 
-    private Object call(String func, Object... args) throws Exception {
-        return executor.submit(FunCall.call(jsObject, func, args)).get();
+    private fun submit(runnable: Runnable) {
+        executor.submit(runnable)
     }
 
-    private void initjs(Class<?> cls) throws Exception {
-        submit(() -> {
-            if (runtime == null) this.runtime = QuickJSContext.create();
-            runtime.setModuleLoader(new QuickJSContext.DefaultModuleLoader() {
-                @Override
-                public String getModuleStringCode(String moduleName) {
-                    return FileUtils.loadModule(moduleName);
+    private fun <T> submit(callable: Callable<T>): Future<T> {
+        return executor.submit(callable)
+    }
+
+    @Throws(Exception::class)
+    private fun call(func: String, vararg args: Any): Any {
+        return executor.submit(FunCall.call(jsObject, func, *args)).get()
+    }
+
+    @Throws(Exception::class)
+    private fun initjs(cls: Class<*>?) {
+        submit<Any?> {
+            if (runtime == null) runtime = QuickJSContext.create()
+            runtime!!.setModuleLoader(object : DefaultModuleLoader() {
+                override fun getModuleStringCode(moduleName: String): String {
+                    return FileUtils.loadModule(moduleName)
                 }
 
-                @Override
-                public String moduleNormalizeName(String moduleBaseName, String moduleName) {
-                    return UriUtil.resolve(moduleBaseName, moduleName);
+                @UnstableApi
+                override fun  moduleNormalizeName(moduleBaseName: String, moduleName: String): String {
+                    return UriUtil.resolve(moduleBaseName, moduleName)
                 }
-            });
-
-            initConsole();
-            runtime.getGlobalObject().bind(new Global(executor));
-
-            if(cls != null){
-                Class<?>[] classes = cls.getDeclaredClasses();
-                JSObject apiObj = runtime.createJSObject();
-
-                LOG.e("cls","" + classes.length);
-                for (Class<?> classe : classes) {
-                    Object javaObj = null;
+            })
+            initConsole()
+            runtime!!.getGlobalObject().bind(Global(executor))
+            if (cls != null) {
+                val classes = cls.declaredClasses
+                val apiObj = runtime!!.createJSObject()
+                LOG.e("cls", "" + classes.size)
+                for (classe in classes) {
+                    var javaObj: Any? = null
                     try {
-                        javaObj = classe.getDeclaredConstructor(cls).newInstance(cls.getDeclaredConstructor(QuickJSContext.class).newInstance(runtime));
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                        javaObj = classe.getDeclaredConstructor(cls)
+                            .newInstance(cls.getDeclaredConstructor(QuickJSContext::class.java).newInstance(runtime))
+                    } catch (e: Exception) {
+                        e.printStackTrace()
                     }
                     if (javaObj == null) {
-                        throw new NullPointerException("The JavaObj cannot be null. An error occurred in newInstance!");
+                        throw NullPointerException("The JavaObj cannot be null. An error occurred in newInstance!")
                     }
-                    JSObject claObj = runtime.createJSObject();
-                    Method[] methods = classe.getDeclaredMethods();
-                    for (Method method : methods) {
-                        if (method.isAnnotationPresent(Function.class)) {
-                            Object finalJavaObj = javaObj;
-                            claObj.set(method.getName(), new JSCallFunction() {
-                                @Override
-                                public Object call(Object... objects) {
-                                    try {
-                                        return method.invoke(finalJavaObj, objects);
-                                    } catch (Throwable e) {
-                                        return null;
-                                    }
+                    val claObj = runtime!!.createJSObject()
+                    val methods = classe.declaredMethods
+                    for (method in methods) {
+                        if (method.isAnnotationPresent(Function::class.java)) {
+                            val finalJavaObj: Any = javaObj
+                            claObj[method.name] = JSCallFunction { objects ->
+                                try {
+                                    return@JSCallFunction method.invoke(finalJavaObj, *objects)
+                                } catch (e: Throwable) {
+                                    return@JSCallFunction null
                                 }
-                            });
+                            }
                         }
                     }
-                    apiObj.set(classe.getSimpleName(), claObj);
-                    LOG.e("cls", classe.getSimpleName());
+                    apiObj[classe.simpleName] = claObj
+                    LOG.e("cls", classe.simpleName)
                 }
-                runtime.getGlobalObject().set("jsapi", apiObj);
+                runtime!!.getGlobalObject()["jsapi"] = apiObj
             }
-            String jsContent = FileUtils.loadModule(js);
-
-            if (jsContent.contains("__jsEvalReturn")) {
-                runtime.evaluate("req = http");
-                jsContent = jsContent + "\n\nglobalThis." + key + " = __jsEvalReturn()";
+            var jsContent = FileUtils.loadModule(js)
+            jsContent = if (jsContent.contains("__jsEvalReturn")) {
+                runtime!!.evaluate("req = http")
+                "$jsContent\n\nglobalThis.$key = __jsEvalReturn()"
             } else if (jsContent.contains("export default{") || jsContent.contains("export default {")) {
-                jsContent = jsContent.replaceAll("export default.*?[{]", "globalThis." + key + " = {");
+                jsContent.replace("export default.*?[{]".toRegex(), "globalThis.$key = {")
             } else {
-                jsContent = jsContent.replace("__JS_SPIDER__", "globalThis." + key);
+                jsContent.replace("__JS_SPIDER__", "globalThis.$key")
             }
             //LOG.e("cls", jsContent);
-            runtime.evaluateModule(jsContent + "\n\n;console.log(typeof(" + key + ".init));\n\nconsole.log(typeof(req));\n\nconsole.log(Object.keys(" + key + "));", js);
-            jsObject = (JSObject) runtime.get(runtime.getGlobalObject(), key);
-            return null;
-        }).get();
+            runtime!!.evaluateModule(
+                "$jsContent\n\n;console.log(typeof($key.init));\n\nconsole.log(typeof(req));\n\nconsole.log(Object.keys($key));",
+                js
+            )
+            jsObject = runtime!![runtime!!.getGlobalObject(), key] as JSObject
+            null
+        }.get()
     }
 
-    private void initConsole() {
-        JSObject local = runtime.createJSObject();
-        runtime.getGlobalObject().set("local", local);
-        local.bind(new local());
-
-        runtime.setConsole(new QuickJSContext.Console() {
-            @Override
-            public void log(String s) {
-                LOG.i("QuJs", s);
-            }
-        });
-
-        runtime.evaluate(FileUtils.loadModule("net.js"));
+    private fun initConsole() {
+        val local = runtime!!.createJSObject()
+        runtime!!.getGlobalObject()["local"] = local
+        local.bind(Local())
+        runtime!!.setConsole { s -> LOG.i("QuJs", s) }
+        runtime!!.evaluate(FileUtils.loadModule("net.js"))
     }
 
-    public void cancelByTag() {
-        Connect.cancelByTag("js_okhttp_tag");
+    override fun cancelByTag() {
+        Connect.cancelByTag("js_okhttp_tag")
     }
 
-    @Override
-    public void init(Context context, final String extend) throws Exception {
-        super.init(context, extend);
-        String ext = FileUtils.loadModule(extend);
-        call("init", Json.valid(ext) ? runtime.parse(ext) : ext);
+    @Throws(Exception::class)
+    override fun init(context: Context, extend: String) {
+        super.init(context, extend)
+        val ext = FileUtils.loadModule(extend)
+        call("init", if (Json.valid(ext)) runtime!!.parse(ext) else ext)
     }
 
-    @Override
-    public String homeContent(boolean filter) throws Exception {
-        return (String) call("home", filter);
+    @Throws(Exception::class)
+    override fun homeContent(filter: Boolean): String {
+        return call("home", filter) as String
     }
 
-    @Override
-    public String homeVideoContent() throws Exception {
-        return (String) call("homeVod");
+    @Throws(Exception::class)
+    override fun homeVideoContent(): String {
+        return call("homeVod") as String
     }
 
-    @Override
-    public String categoryContent(String tid, String pg, boolean filter, HashMap<String, String> extend) throws Exception {
-        JSObject obj = submit(() -> new JSUtils<String>().toObj(runtime, extend)).get();
-        return (String) call("category", tid, pg, filter, obj);
+    @Throws(Exception::class)
+    override fun categoryContent(tid: String, pg: String, filter: Boolean, extend: HashMap<String, String>): String {
+        val obj = submit<JSObject> { JSUtils<String>().toObj(runtime, extend) }.get()
+        return call("category", tid, pg, filter, obj) as String
     }
 
-    @Override
-    public String detailContent(List<String> ids) throws Exception {
-        return (String) call("detail", ids.get(0));
+    @Throws(Exception::class)
+    override fun detailContent(ids: List<String>): String {
+        return call("detail", ids[0]) as String
     }
 
-    @Override
-    public String playerContent(String flag, String id, List<String> vipFlags) throws Exception {
-        JSArray array = submit(() -> new JSUtils<String>().toArray(runtime, vipFlags)).get();
-        return (String) call("play", flag, id, array);
+    @Throws(Exception::class)
+    override fun playerContent(flag: String, id: String, vipFlags: List<String>): String {
+        val array = submit<JSArray> { JSUtils<String>().toArray(runtime, vipFlags) }.get()
+        return call("play", flag, id, array) as String
     }
 
-    @Override
-    public String searchContent(String key, boolean quick) throws Exception {
-        return (String) call("search", key, quick);
+    @Throws(Exception::class)
+    override fun searchContent(key: String, quick: Boolean): String {
+        return call("search", key, quick) as String
     }
 
-    @Override
-    public String searchContent(String key, boolean quick, String pg) throws Exception {
-        return (String) call("search", key, quick, pg);
+    @Throws(Exception::class)
+    override fun searchContent(key: String, quick: Boolean, pg: String): String {
+        return call("search", key, quick, pg) as String
     }
 
-    @Override
-    public Object[] proxyLocal(Map<String, String> params) throws Exception {
-        return submit(() -> {
+    @Throws(Exception::class)
+    override fun proxyLocal(params: Map<String, String>): Array<Any?> {
+        return submit<Array<Any?>> {
             try {
-                JSObject o = new JSUtils<String>().toObj(runtime, params);
-                JSFunction jsFunction = jsObject.getJSFunction("proxy");
-                JSONArray opt = new JSONArray(jsFunction.call(null, new Object[]{o}).toString());
-                Object[] result = new Object[3];
-                result[0] = opt.opt(0);
-                result[1] = opt.opt(1);
-                Object obj = opt.opt(2);
-                ByteArrayInputStream baos;
-                if (obj instanceof JSONArray) {
-                    JSONArray json = (JSONArray) obj;
-                    byte[] b = new byte[json.length()];
-                    for (int i = 0; i < json.length(); i++) {
-                        b[i] = (byte) json.optInt(i);
+                val o = JSUtils<String>().toObj(runtime, params)
+                val jsFunction = jsObject!!.getJSFunction("proxy")
+                val opt = JSONArray(jsFunction.call(null, arrayOf<Any>(o)).toString())
+                val result = arrayOfNulls<Any>(3)
+                result[0] = opt.opt(0)
+                result[1] = opt.opt(1)
+                val obj = opt.opt(2)
+                val baos: ByteArrayInputStream
+                if (obj is JSONArray) {
+                    val json = obj
+                    val b = ByteArray(json.length())
+                    for (i in 0 until json.length()) {
+                        b[i] = json.optInt(i).toByte()
                     }
-                    baos = new ByteArrayInputStream(b);
+                    baos = ByteArrayInputStream(b)
                 } else {
-                    baos = new ByteArrayInputStream(opt.opt(2).toString().getBytes());
+                    baos = ByteArrayInputStream(opt.opt(2).toString().toByteArray())
                 }
-                result[2] = baos;
-                return result;
-            } catch (Throwable throwable) {
-                LOG.e(throwable);
-                return new Object[0];
+                result[2] = baos
+                return@submit result
+            } catch (throwable: Throwable) {
+                LOG.e(throwable)
+                return@submit arrayOfNulls<Any>(0)
             }
-        }).get();
+        }.get()
     }
 
-    @Override
-    public boolean manualVideoCheck() throws Exception {
-        return (Boolean) call("sniffer");
+    @Throws(Exception::class)
+    override fun manualVideoCheck(): Boolean {
+        return call("sniffer") as Boolean
     }
 
-    @Override
-    public boolean isVideoFormat(String url) throws Exception {
-        return (Boolean) call("isVideo", url);
+    @Throws(Exception::class)
+    override fun isVideoFormat(url: String): Boolean {
+        return call("isVideo", url) as Boolean
     }
 }

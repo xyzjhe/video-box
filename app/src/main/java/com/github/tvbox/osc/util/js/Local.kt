@@ -1,30 +1,38 @@
-package com.github.tvbox.osc.util.js;
+package com.github.tvbox.osc.util.js
 
-import androidx.annotation.Keep;
-import com.orhanobut.hawk.Hawk;
-import com.whl.quickjs.wrapper.Function;
+import androidx.annotation.Keep
+import com.orhanobut.hawk.Hawk
+import com.whl.quickjs.wrapper.Function
 
-public class local {@Keep@Function
-    public void delete(String str, String str2) {
+class Local {
+    @Keep
+    @Function
+    fun delete(str: String, str2: String) {
         try {
-            Hawk.delete("jsRuntime_" + str + "_" + str2);
-        } catch (Exception e) {
-            e.printStackTrace();
+            Hawk.delete("jsRuntime_" + str + "_" + str2)
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-    }@Keep@Function
-    public String get(String str, String str2) {
-        try {
-            return Hawk.get("jsRuntime_" + str + "_" + str2, "");
-        } catch (Exception e) {
-            Hawk.delete(str);
-            return str2;
+    }
+
+    @Keep
+    @Function
+    operator fun get(str: String, str2: String): String {
+        return try {
+            Hawk.get("jsRuntime_" + str + "_" + str2, "")
+        } catch (e: Exception) {
+            Hawk.delete(str)
+            str2
         }
-    }@Keep@Function
-    public void set(String str, String str2, String str3) {
+    }
+
+    @Keep
+    @Function
+    operator fun set(str: String, str2: String, str3: String) {
         try {
-            Hawk.put("jsRuntime_" + str + "_" + str2, str3);
-        } catch (Exception e) {
-            e.printStackTrace();
+            Hawk.put("jsRuntime_" + str + "_" + str2, str3)
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 }
