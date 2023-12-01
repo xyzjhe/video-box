@@ -34,7 +34,7 @@ jobs:
           export SENTRY_AUTH_TOKEN=${{secrets.SENTRY_AUTH_TOKEN}}
           export SENTRY_PROJECT=tvbox
           echo using $SENTRY_AUTH_TOKEN
-          ./gradlew assemblerelease --build-cache --parallel --daemon --warning-mode all
+          ./gradlew assembleDebug --build-cache --parallel --daemon --warning-mode all
       - name: generate sentry config
         run: |
           echo "defaults.project=tvbox" > sentry.properties
