@@ -30,6 +30,8 @@
     </queries>
 
     <application
+        android:allowNativeHeapPointerTagging="false"
+        android:extractNativeLibs="true"
         android:name=".base.App"
         android:allowBackup="true"
         android:configChanges="orientation|keyboardHidden|screenSize"
