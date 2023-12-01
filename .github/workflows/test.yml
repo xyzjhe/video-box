@@ -34,6 +34,11 @@ jobs:
           export SENTRY_AUTH_TOKEN=${{secrets.SENTRY_AUTH_TOKEN}}
           echo using $SENTRY_AUTH_TOKEN
           ./gradlew assemblerelease --build-cache --parallel --daemon --warning-mode all
+      - name: generate sentry config
+        run: |
+          echo "defaults.project=tvbox" > sentry.properties
+          echo "defaults.org=koswu" >> sentry.properties
+          echo "auth.token=$SENTRY_AUTH_TOKEN" >> sentry.properties
       - name: Prepare App
         run: |
           mkdir -p ${{ github.workspace }}/apk/
