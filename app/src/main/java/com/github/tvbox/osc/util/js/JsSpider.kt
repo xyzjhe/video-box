@@ -62,7 +62,7 @@ class JsSpider(key: String?, private val api: String, private val dex: Class<*>?
         val cfg = ctx.createJSObject()
         cfg["stype"] = 3
         cfg["skey"] = key
-        if (Json.invalid(ext)) cfg["ext"] = ext else cfg["ext"] = ctx!!.parse(ext) as JSObject
+        if (Json.invalid(ext)) cfg["ext"] = ext else cfg["ext"] = ctx.parse(ext) as JSObject
         return cfg
     }
 
@@ -133,7 +133,7 @@ class JsSpider(key: String?, private val api: String, private val dex: Class<*>?
     override fun destroy() {
         submit {
             executor.shutdownNow()
-            ctx!!.destroy()
+            ctx.destroy()
         }
     }
 
@@ -249,7 +249,7 @@ class JsSpider(key: String?, private val api: String, private val dex: Class<*>?
                     QuickJSContext::class.java
                 ).newInstance(ctx)
             )
-            val subObj = ctx!!.createJSObject()
+            val subObj = ctx.createJSObject()
             invoke(subClz, subObj, javaObj)
             jsObj[subClz.simpleName] = subObj
         }
@@ -280,7 +280,7 @@ class JsSpider(key: String?, private val api: String, private val dex: Class<*>?
                 return null
             }
             return if (content.contains("__jsEvalReturn")) {
-                ctx!!.evaluate("req = http")
+                ctx.evaluate("req = http")
                 "$content$global = __jsEvalReturn()"
             } else if (content.contains("__JS_SPIDER__")) {
                 content.replace("__JS_SPIDER__", global)
