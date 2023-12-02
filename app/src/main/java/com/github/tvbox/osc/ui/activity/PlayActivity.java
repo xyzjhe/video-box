@@ -49,6 +49,7 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.media3.common.Player;
 import androidx.media3.common.text.Cue;
+import androidx.media3.common.util.UnstableApi;
 import androidx.recyclerview.widget.DiffUtil;
 
 import com.github.catvod.crawler.Spider;
@@ -855,7 +856,7 @@ public class PlayActivity extends BaseActivity {
                         hideTip();
                         if (url.startsWith("data:application/dash+xml;base64,")) {
                             PlayerHelper.updateCfg(mVideoView, mVodPlayerCfg, 2);
-                            App.getInstance().setDashData(url.split("base64,")[1]);
+                            App.getInstance().dashData = url.split("base64,")[1];
                             url = ControlManager.get().getAddress(true) + "dash/proxy.mpd";
                         } else if (url.contains(".mpd") || url.contains("type=mpd")) {
                             PlayerHelper.updateCfg(mVideoView, mVodPlayerCfg, 2);
@@ -902,9 +903,10 @@ public class PlayActivity extends BaseActivity {
                 mController.mSubtitleView.hasInternal = true;
             }
             ((EXOmPlayer) (mVideoView.getMediaPlayer())).setOnTimedTextListener(new Player.Listener() {
+                @UnstableApi
                 @Override
                 public void onCues(@NonNull List<Cue> cues) {
-                    if (cues.size() > 0) {
+                    if (!cues.isEmpty()) {
                         CharSequence ss = cues.get(0).text;
                         if (ss != null && mController.mSubtitleView.isInternal) {
                             Subtitle subtitle = new Subtitle();
@@ -1255,7 +1257,7 @@ public class PlayActivity extends BaseActivity {
         stopParse();
         Thunder.stop(false); // 停止磁力下载
         Jianpian.finish();//停止p2p下载
-        App.getInstance().setDashData(null);
+        App.getInstance().dashData = null;
     }
 
     private VodInfo mVodInfo;

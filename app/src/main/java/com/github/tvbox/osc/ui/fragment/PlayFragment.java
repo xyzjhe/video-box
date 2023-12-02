@@ -41,6 +41,7 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.media3.common.Player;
 import androidx.media3.common.text.Cue;
+import androidx.media3.common.util.UnstableApi;
 import androidx.recyclerview.widget.DiffUtil;
 
 import com.github.catvod.crawler.Spider;
@@ -107,14 +108,7 @@ import org.xwalk.core.XWalkWebResourceResponse;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -329,21 +323,18 @@ public class PlayFragment extends BaseLazyFragment {
         subtitleDialog.setSearchSubtitleListener(new SubtitleDialog.SearchSubtitleListener() {
         	@Override
             public void openSearchSubtitleDialog() {
-                SearchSubtitleDialog searchSubtitleDialog = new SearchSubtitleDialog(getActivity());
+                SearchSubtitleDialog searchSubtitleDialog = new SearchSubtitleDialog(requireActivity());
                 searchSubtitleDialog.setSubtitleLoader(new SearchSubtitleDialog.SubtitleLoader() {
                 	@Override
                     public void loadSubtitle(SubtitleBean subtitle) {
-                    	if (!isAdded()) return;
-                        requireActivity().runOnUiThread(new Runnable() {
-                        	@Override
-                            public void run() {
-                                String zimuUrl = subtitle.getUrl();
-                                LOG.i("Remote SubtitleBean Url: " + zimuUrl);
-                                setSubtitle(zimuUrl); //设置字幕
-                                if (searchSubtitleDialog != null) {
-                                    searchSubtitleDialog.dismiss();
-                                }
-                            }
+                    	if (!isAdded()) {
+                            return;
+                        }
+                        requireActivity().runOnUiThread(() -> {
+                            String zimuUrl = subtitle.getUrl();
+                            LOG.i("Remote SubtitleBean Url: " + zimuUrl);
+                            setSubtitle(zimuUrl); //设置字幕
+                            searchSubtitleDialog.dismiss();
                         });
                     }
                 });
@@ -852,7 +843,7 @@ public class PlayFragment extends BaseLazyFragment {
                         hideTip();
                         if (url.startsWith("data:application/dash+xml;base64,")) {
                             PlayerHelper.updateCfg(mVideoView, mVodPlayerCfg, 2);
-                            App.getInstance().setDashData(url.split("base64,")[1]);
+                            App.getInstance().dashData = url.split("base64,")[1];
                             url = ControlManager.get().getAddress(true) + "dash/proxy.mpd";
                         } else if (url.contains(".mpd") || url.contains("type=mpd")) {
                             PlayerHelper.updateCfg(mVideoView, mVodPlayerCfg, 2);
@@ -899,6 +890,7 @@ public class PlayFragment extends BaseLazyFragment {
                 mController.mSubtitleView.hasInternal = true;
             }
             ((EXOmPlayer) (mVideoView.getMediaPlayer())).setOnTimedTextListener(new Player.Listener() {
+                @UnstableApi
                 @Override
                 public void onCues(@NonNull List<Cue> cues) {
                     if (cues.size() > 0) {
@@ -1142,7 +1134,7 @@ public class PlayFragment extends BaseLazyFragment {
         stopParse();
         Thunder.stop(true); // 停止磁力下载
         Jianpian.finish();//停止p2p下载
-        App.getInstance().setDashData(null);
+        App.getInstance().dashData = null;
     }
     
     public MyVideoView getPlayer() {
